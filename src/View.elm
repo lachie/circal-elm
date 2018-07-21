@@ -90,10 +90,36 @@ yearView s year =
                     []
                 ]
             , g [ transform [ Translate radius radius ] ] <| List.map (dayView s dayAngle) year.days
-            , rect [ x (px 0), y (px 0), width (px s.diameter), height (px s.diameter), fill <| Fill Color.red, onMouseMove YearMove ] []
+            , rect
+                [ x (px 0)
+                , y (px 0)
+                , width (px s.diameter)
+                , height (px s.diameter)
+                , fill <| Fill <| Color.rgba 0 0 0 0
+                , onMouseMove <| YearMove << (yearPointToPolarPoint s)
+                ]
+                []
 
             -- onMouseMove YearMouseAt
             ]
+
+
+yearPointToPolarPoint : YearViewSettings -> Point -> PolarPoint
+yearPointToPolarPoint s { x, y } =
+    let
+        yr =
+            s.diameter / 2
+
+        cx =
+            x - yr
+
+        cy =
+            y - yr
+
+        ( r, t ) =
+            toPolar ( cx, cy )
+    in
+        PolarPoint r t
 
 
 unmapYearAngle : YearViewSettings -> ( Float, Float ) -> Float

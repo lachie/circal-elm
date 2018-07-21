@@ -15,40 +15,15 @@ onMouseMove : (Point -> msg) -> Attribute msg
 onMouseMove newMessage =
     on "mousemove" <|
         Json.map
-            (positionInCanvas >> newMessage)
+            newMessage
             (traceDecoder "mm" positionDecoder)
 
 
-positionInCanvas : ( ( Float, Float ), ( Float, Float ), ( Float, Float ), ( Float, Float ) ) -> Point
-positionInCanvas ( client, offset, body, documentElement ) =
-    let
-        ( cx, cy ) =
-            client
-
-        ( ox, oy ) =
-            offset
-
-        ( bx, by ) =
-            body
-
-        ( dx, dy ) =
-            documentElement
-    in
-        Point ((cx + bx + dx) - ox) ((cy + by + dy) - oy)
-
-
-positionDecoder : Json.Decoder ( ( Float, Float ), ( Float, Float ), ( Float, Float ), ( Float, Float ) )
+positionDecoder : Json.Decoder Point
 positionDecoder =
-    Json.map4 (,,,)
-        (toTuple [ "clientX" ] [ "clientY" ])
-        (toTuple [ "offsetX" ] [ "offsetY" ])
-        (toTuple [ "view", "document", "body", "scrollLeft" ] [ "view", "document", "body", "scrollTop" ])
-        (toTuple [ "view", "document", "documentElement", "scrollLeft" ] [ "view", "document", "documentElement", "scrollTop" ])
-
-
-toTuple : List String -> List String -> Json.Decoder ( Float, Float )
-toTuple x y =
-    Json.map2 (,) (Json.at x Json.float) (Json.at y Json.float)
+    Json.map2 Point
+        (Json.at [ "offsetX" ] Json.float)
+        (Json.at [ "offsetY" ] Json.float)
 
 
 traceDecoder : String -> Json.Decoder msg -> Json.Decoder msg

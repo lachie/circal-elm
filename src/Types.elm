@@ -10,10 +10,16 @@ import View.Mouse exposing (Point)
 type Msg
     = SelectDay Day
     | YearAngle Float
-    | YearMove Point
+    | YearMove PolarPoint
     | DragStart Mouse.Position
     | DragAt Mouse.Position
     | DragEnd Mouse.Position
+
+
+type alias PolarPoint =
+    { r : Float
+    , t : Float
+    }
 
 
 type alias Event =
