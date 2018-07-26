@@ -7,8 +7,10 @@ import Types exposing (Model, Msg)
 
 
 -- main : Program Never Model Msg
+
+
 main =
-  Html.program
+    Html.program
         { init = State.init { initialMilliseconds = 1531890186338 }
         , update = State.update
         , subscriptions = State.subscriptions

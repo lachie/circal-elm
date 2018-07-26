@@ -2,7 +2,9 @@ module State exposing (..)
 
 import Date exposing (Date)
 import Types exposing (..)
-import View exposing (yearViewUnmapAngle, yearViewSettings)
+import Types.Year exposing (yearForMilliseconds)
+import View
+import View.Year
 import Mouse exposing (Position)
 
 
@@ -13,7 +15,14 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( Model (yearForMilliseconds flags.initialMilliseconds) 0 Nothing, Cmd.none )
+    let
+        year =
+            yearForMilliseconds flags.initialMilliseconds
+
+        ( yearViewState, yearViewCmd ) =
+            View.Year.initYearState
+    in
+        (Model year yearViewState) ! [ Cmd.map SetYearViewState yearViewCmd ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -23,20 +32,13 @@ update msg model =
             Debug.log "msg" msg
     in
         case msg of
-            SelectDay day ->
-                let
-                    _ =
-                        Debug.log "day" day
-                in
-                    ( { model | selectedDay = Just day }, Cmd.none )
+            SetYearViewState newState ->
+                ( { model | yearViewState = newState }, Cmd.none )
 
-            YearMove point ->
-                let
-                    _ =
-                        Debug.log "year move" point
-                in
-                    ( model, Cmd.none )
-
+            -- SelectDay day ->
+            -- ( { model | selectedDay = Just day }, Cmd.none )
+            -- YearMove { i } ->
+            -- ( (updateYearMove model i), Cmd.none )
             _ ->
                 ( model, Cmd.none )
 

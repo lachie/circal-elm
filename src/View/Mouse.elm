@@ -16,7 +16,7 @@ onMouseMove newMessage =
     on "mousemove" <|
         Json.map
             newMessage
-            (traceDecoder "mm" positionDecoder)
+            positionDecoder
 
 
 positionDecoder : Json.Decoder Point
