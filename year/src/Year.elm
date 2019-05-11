@@ -1,8 +1,8 @@
-module Year exposing (Year, fromDate, view)
+module Year exposing (Year, dayRadiusN, daysRadiusN, fromDate, view)
 
 import AbsoluteMonth exposing (AbsoluteMonth)
 import Calendar exposing (Date)
-import CalendarEvent exposing (CalendarEvent, Event, EventDetails(..), TripTime)
+import CalendarEvent exposing (Evt)
 import Color
 import Date
 import Day exposing (Day)
@@ -16,7 +16,7 @@ import TypedSvg exposing (circle, g, line, svg, text_)
 import TypedSvg.Attributes exposing (class, cx, cy, fill, fontSize, height, r, stroke, strokeWidth, textAnchor, transform, viewBox, width, x, x1, x2, y, y1, y2)
 import TypedSvg.Core exposing (Svg, attribute, text)
 import TypedSvg.Types exposing (AnchorAlignment(..), Fill(..), Transform(..), px)
-import ViewHelpers exposing (YearDirection(..), YearViewFacts, arcLabel)
+import ViewHelpers exposing (ViewFacts, YearDirection(..), arcLabel)
 
 
 type alias Year =
@@ -26,6 +26,39 @@ type alias Year =
     , daysInRange : Int
     , jan1offset : Int
     }
+
+
+type alias YearViewFacts =
+    { viewFacts : ViewFacts
+    , fullRadius : Float
+    , radius : Float
+    , diameter : Float
+    , innerRadius : Float
+    , daysInRange : Int
+    }
+
+
+daysRadiusN : Int -> Float -> Int -> Float
+daysRadiusN daysInYear seedRadius iter =
+    case iter of
+        0 ->
+            seedRadius
+
+        n ->
+            let
+                dayDiameter =
+                    2 * pi * seedRadius / (daysInYear |> toFloat)
+            in
+            daysRadiusN daysInYear (seedRadius - dayDiameter) (n - 1)
+
+
+dayRadiusN : Int -> Float -> Int -> Float
+dayRadiusN daysInYear seedRadius iter =
+    let
+        daysRadius =
+            daysRadiusN daysInYear seedRadius iter
+    in
+    2 * pi * daysRadius / (daysInYear |> toFloat) / 2.0
 
 
 fromDate : Date -> Year
@@ -134,7 +167,7 @@ yearTransitionView_ : YearViewFacts -> Int -> Int -> Int -> Svg msg
 yearTransitionView_ facts index pre post =
     let
         ( thisYearAnchor, nextYearAnchor ) =
-            case facts.direction of
+            case facts.viewFacts.direction of
                 Clockwise ->
                     ( AnchorStart, AnchorEnd )
 
@@ -142,7 +175,7 @@ yearTransitionView_ facts index pre post =
                     ( AnchorEnd, AnchorStart )
     in
     g
-        [ transform [ Rotate (facts.dayAngle index) 0 0 ]
+        [ transform [ Rotate (facts.viewFacts.dayAngleIndex index) 0 0 ]
         ]
         [ line
             [ x1 (px facts.innerRadius)
@@ -158,14 +191,16 @@ yearTransitionView_ facts index pre post =
         ]
 
 
-view : Float -> Year -> List Event -> Html msg
+view : Float -> Year -> List Evt -> Html msg
 view fullRadius year events =
     let
-        _ =
-            log "year" year
-
+        -- _ =
+        -- log "year" year
         radius =
             fullRadius * 0.9
+
+        _ =
+            log "radius" radius
 
         dir =
             -- Clockwise
@@ -186,25 +221,31 @@ view fullRadius year events =
         dateAngle =
             dayAngle << Calendar.getDayDiff year.firstDay.date
 
-        dayRadius =
-            \rad -> (2 * pi * rad) / toFloat year.daysInRange / 2
+        startJDN =
+            Date.toJulianDayNumber year.firstDay.date
+
+        viewFacts =
+            { dayAngleIndex = dayAngle
+            , dayAngleJDN = \x -> dayAngle (x - startJDN)
+            , seedRadius = radius
+            , startJDN = startJDN
+            , endJDN = startJDN + year.daysInRange
+            , direction = dir
+            , dayRadiusN = dayRadiusN year.daysInRange radius
+            , daysRadiusN = daysRadiusN year.daysInRange radius
+            }
 
         facts =
-            { fullRadius = fullRadius
+            { viewFacts = viewFacts
+            , fullRadius = fullRadius
             , radius = radius
             , diameter = fullRadius * 2
-            , dayAngle = dayAngle
-            , dateAngle = dateAngle
             , innerRadius = radius * 0.25
-            , daysRadius = radius * 1
-            , dayRadius = dayRadius
             , daysInRange = year.daysInRange
-            , direction = dir
-            , firstDate = year.firstDay.date
             }
 
         angleOffset =
-            facts.dayAngle year.jan1offset - 90
+            viewFacts.dayAngleIndex year.jan1offset - 90
 
         -- facts.dayAngle (year.daysInRange - year.jan1offset)
     in
@@ -254,9 +295,9 @@ view fullRadius year events =
                 , strokeWidth (px 0.5)
                 ]
                 (List.map
-                    (Day.view facts)
+                    (Day.view facts.viewFacts)
                     year.days
                 )
-            , CalendarEvent.view facts events
+            , CalendarEvent.view facts.viewFacts events
             ]
         ]

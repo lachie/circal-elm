@@ -9,7 +9,7 @@ import TypedSvg exposing (circle, g, line, svg, text_)
 import TypedSvg.Attributes exposing (class, cx, cy, fill, fontSize, height, r, stroke, strokeWidth, textAnchor, transform, viewBox, width, x, x1, x2, y, y1, y2)
 import TypedSvg.Core exposing (Svg, attribute, text)
 import TypedSvg.Types exposing (AnchorAlignment(..), Fill(..), Transform(..), px)
-import ViewHelpers exposing (YearDirection(..), YearViewFacts, arcLabel)
+import ViewHelpers exposing (ViewFacts, YearDirection(..), arcLabel)
 
 
 type alias Month =
@@ -22,19 +22,27 @@ type alias Month =
     }
 
 
+type alias YearViewFacts a =
+    { a
+        | viewFacts : ViewFacts
+        , innerRadius : Float
+        , radius : Float
+    }
+
+
 fromIndexAndAbsoluteMonth : Int -> AbsoluteMonth -> Month
 fromIndexAndAbsoluteMonth index absMonth =
     { startDayIndex = index, endDayIndex = 0, date = absMonth, index = 0, monthsInRange = 0, daysInRange = 0 }
 
 
-view : YearViewFacts -> Month -> Svg msg
+view : YearViewFacts a -> Month -> Svg msg
 view facts month =
     let
         ( _, m ) =
             month.date
 
         anchor =
-            case facts.direction of
+            case facts.viewFacts.direction of
                 Clockwise ->
                     AnchorStart
 
@@ -42,7 +50,7 @@ view facts month =
                     AnchorEnd
     in
     g
-        [ transform [ Rotate (facts.dayAngle month.startDayIndex) 0 0 ]
+        [ transform [ Rotate (facts.viewFacts.dayAngleIndex month.startDayIndex) 0 0 ]
         ]
         [ line
             [ x1 (px facts.innerRadius)
@@ -51,5 +59,5 @@ view facts month =
             , y2 (px 0)
             ]
             []
-        , arcLabel facts.radius anchor (monthToString m)
+        , arcLabel (facts.viewFacts.daysRadiusN 0) anchor (monthToString m)
         ]

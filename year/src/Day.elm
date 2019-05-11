@@ -11,7 +11,7 @@ import TypedSvg exposing (circle, g, line, svg, text_, title)
 import TypedSvg.Attributes exposing (class, cx, cy, fill, fontSize, height, r, stroke, strokeWidth, textAnchor, transform, viewBox, width, x, x1, x2, y, y1, y2)
 import TypedSvg.Core exposing (Svg, attribute, text)
 import TypedSvg.Types exposing (AnchorAlignment(..), Fill(..), Transform(..), px)
-import ViewHelpers exposing (YearViewFacts)
+import ViewHelpers exposing (ViewFacts)
 
 
 type alias Day =
@@ -61,14 +61,14 @@ weekend { dayOfWeek } =
             False
 
 
-view : YearViewFacts -> Day -> Svg msg
+view : ViewFacts -> Day -> Svg msg
 view facts day =
     let
         radius =
-            facts.daysRadius
+            facts.daysRadiusN 0
 
         dayRadius =
-            facts.dayRadius radius
+            facts.dayRadiusN 0
 
         dayFill =
             if weekend day then
@@ -77,11 +77,21 @@ view facts day =
             else
                 Fill Color.white
     in
-    circle
-        [ cx (px 0)
-        , cy (px 0)
-        , r (px dayRadius)
-        , transform [ Rotate (facts.dayAngle day.index) 0 0, Translate (radius - dayRadius) 0 ]
-        , fill dayFill
+    g
+        [ transform [ Rotate (facts.dayAngleIndex day.index) 0 0, Translate radius 0 ]
         ]
-        [ title [] [ text (Date.toString day.date) ] ]
+        [ circle
+            [ cx (px 0)
+            , cy (px 0)
+            , r (px dayRadius)
+            , fill dayFill
+            ]
+            [ title [] [ text (Date.toString day.date) ]
+            ]
+        , text_
+            [ transform [ Rotate 90 0 0 ]
+            , fontSize (px (1.8 * dayRadius))
+            , textAnchor AnchorMiddle
+            ]
+            [ text (String.fromInt day.dayOfMonth) ]
+        ]

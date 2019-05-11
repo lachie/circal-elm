@@ -1,4 +1,4 @@
-module ViewHelpers exposing (YearDirection(..), YearViewFacts, arcLabel)
+module ViewHelpers exposing (ViewFacts, YearDirection(..), arcLabel)
 
 import Calendar
 import TypedSvg exposing (circle, g, line, svg, text_)
@@ -12,18 +12,15 @@ type YearDirection
     | AntiClockwise
 
 
-type alias YearViewFacts =
-    { dayAngle : Int -> Float
-    , dateAngle : Calendar.Date -> Float
-    , fullRadius : Float
-    , radius : Float
-    , diameter : Float
-    , innerRadius : Float
-    , daysRadius : Float
-    , dayRadius : Float -> Float
-    , daysInRange : Int
+type alias ViewFacts =
+    { startJDN : Int
+    , endJDN : Int
     , direction : YearDirection
-    , firstDate : Calendar.Date
+    , seedRadius : Float
+    , dayRadiusN : Int -> Float
+    , daysRadiusN : Int -> Float
+    , dayAngleJDN : Int -> Float
+    , dayAngleIndex : Int -> Float
     }
 
 

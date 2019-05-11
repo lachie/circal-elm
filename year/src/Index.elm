@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Calendar
-import CalendarEvent exposing (CalendarEvent, Event, EventDetails(..), TripTime)
+import CalendarEvent exposing (EventDetail(..), EventTime(..), Evt(..), Location(..), Repetition(..))
 import Color
 import Date
 import Debug exposing (log)
@@ -37,26 +37,32 @@ main =
 type alias Model =
     { today : Calendar.Date
     , year : Maybe Year.Year
-    , events : List Event
+    , events : List Evt
     }
 
 
 events =
-    [ ( "Accelerate/New Orleans"
-      , Trip
-            [ ( "", Flight (TripTime 2019 May 17 1740 "SYD") (TripTime 2019 May 17 1400 "SFO") "QF73" )
-            , ( "", Accomodation (TripTime 2019 May 17 0 "SF") (TripTime 2019 May 27 0 "SF") "Hotel Emblem" )
-            , ( "", Flight (TripTime 2019 May 27 1300 "SFO") (TripTime 2019 May 27 1910 "MSY") "AS1390" )
-            , ( "", Accomodation (TripTime 2019 May 27 0 "NOLA") (TripTime 2019 Jun 3 0 "NOLA") "Airbnb" )
-            , ( "", Flight (TripTime 2019 Jun 3 2030 "MSY") (TripTime 2019 Jun 3 2310 "SFO") "AS1391" )
-            , ( "", Flight (TripTime 2019 Jun 4 2225 "SFO") (TripTime 2019 Jun 6 605 "SYD") "QF74" )
+    [ Events [ Desc "Accelerate/New Orleans" ]
+        [ RangeEvent (LocatedTime 2019 May 17 1740 (Airport "SYD")) (LocatedTime 2019 May 17 1400 (Airport "SFO")) [ Flight "QF73" ]
+        , RangeEvent (LocatedTime 2019 May 17 0 (City "SF")) (LocatedTime 2019 May 27 0 (City "SF")) [ Accom "Hotel Emblem" ]
+        , RangeEvent (LocatedTime 2019 May 27 1300 (Airport "SFO")) (LocatedTime 2019 May 27 1910 (Airport "MSY")) [ Flight "AS1390" ]
+        , RangeEvent (LocatedTime 2019 May 27 0 (City "NOLA")) (LocatedTime 2019 Jun 3 0 (City "NOLA")) [ Accom "Airbnb" ]
+        , RangeEvent (LocatedTime 2019 Jun 3 2030 (Airport "MSY")) (LocatedTime 2019 Jun 3 2310 (Airport "SFO")) [ Accom "AS1391" ]
+        , RangeEvent (LocatedTime 2019 Jun 3 0 (City "SF")) (LocatedTime 2019 Jun 4 0 (City "SF")) [ Pending ]
+        , RangeEvent (LocatedTime 2019 Jun 4 2225 (Airport "SFO")) (LocatedTime 2019 Jun 6 605 (Airport "SYD")) [ Flight "QF74" ]
+        ]
+    , RepeatEvent EveryYear
+        [ Event (EventDate 2006 Nov 9) [ Birthday "Toby" ]
+        , Event (EventDate 2009 Jun 25) [ Birthday "Sam" ]
+        ]
+        [ Desc "Birthdays" ]
+    , Events [ Desc "Routine" ]
+        [ RepeatEvent (EveryNWeeks 4)
+            [ RangeEvent (EventDate 2019 Apr 20) (EventDate 2019 May 4) [ Desc "Ilona Kids" ]
+            , RangeEvent (EventDate 2019 May 4) (EventDate 2019 May 18) [ Desc "Lachie Kids" ]
             ]
-      )
-    , ( "Birthday"
-      , Birthdays
-            [ ( "", Birthday "Toby" 2006 Nov 9 )
-            ]
-      )
+            []
+        ]
     ]
 
 

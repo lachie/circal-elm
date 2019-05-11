@@ -1,4 +1,4 @@
-module Date exposing (firstOfMonth, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString)
+module Date exposing (firstOfMonth, fromJulianDayNumber, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString)
 
 import Calendar exposing (Date)
 import Time
@@ -23,6 +23,45 @@ julianDayNumber : Int -> Int -> Int -> Int
 julianDayNumber y m d =
     -- (1461 * (y + 4800 + (m - 14) // 12)) // 4 + (367 * (m - 2 - 12 * ((m - 14) // 12))) // 12 - (3 * ((y + 4900 + (m - 14) // 12) // 100)) // 4 + d - 32075
     (1461 * (y + 4800 + (m - 14) // 12)) // 4 + (367 * (m - 2 - 12 * ((m - 14) // 12))) // 12 - (3 * ((y + 4900 + (m - 14) // 12) // 100)) // 4 + d - 32075
+
+
+fromJulianDayNumber : Int -> ( Int, Time.Month, Int )
+fromJulianDayNumber jd =
+    let
+        -- For the Gregorian calendar:
+        a =
+            jd + 32044
+
+        b =
+            (4 * a + 3) // 146097
+
+        c =
+            a - (b * 146097) // 4
+
+        -- For the Julian calendar:
+        -- b =
+        -- 0
+        -- c =
+        -- JD + 32082
+        d =
+            (4 * c + 3) // 1461
+
+        e =
+            c - (1461 * d) // 4
+
+        m =
+            (5 * e + 2) // 153
+
+        day =
+            e - (153 * m + 2) // 5 + 1
+
+        month =
+            m + 3 - 12 * (m // 10)
+
+        year =
+            b * 100 + d - 4800 + m // 10
+    in
+    ( year, indexMonth month, day )
 
 
 toJulianDayNumber : Date -> Int
