@@ -70,6 +70,12 @@ view facts day =
         dayRadius =
             facts.dayRadiusN 0
 
+        thisDayAngle =
+            facts.dayAngleIndex day.index
+
+        halfOneDayAngle =
+            0.5 * facts.dayAngleIndex 1
+
         dayFill =
             if weekend day then
                 Fill Color.gray
@@ -77,21 +83,26 @@ view facts day =
             else
                 Fill Color.white
     in
-    g
-        [ transform [ Rotate (facts.dayAngleIndex day.index) 0 0, Translate radius 0 ]
-        ]
-        [ circle
-            [ cx (px 0)
-            , cy (px 0)
-            , r (px dayRadius)
-            , fill dayFill
+    g []
+        [ g
+            [ transform [ Rotate (thisDayAngle - halfOneDayAngle) 0 0, Translate radius 0 ]
             ]
-            [ title [] [ text (Date.toString day.date) ]
+            [ line
+                [ x1 (px <| dayRadius * -0.2)
+                , y1 (px 0)
+                , x2 (px <| dayRadius * 1.4)
+                , y2 (px 0)
+                ]
+                []
             ]
-        , text_
-            [ transform [ Rotate 90 0 0 ]
-            , fontSize (px (1.8 * dayRadius))
-            , textAnchor AnchorMiddle
+        , g
+            [ transform [ Rotate thisDayAngle 0 0, Translate radius 0 ]
             ]
-            [ text (String.fromInt day.dayOfMonth) ]
+            [ text_
+                [ transform [ Rotate 90 0 0 ]
+                , fontSize (px (1.2 * dayRadius))
+                , textAnchor AnchorMiddle
+                ]
+                [ text (String.fromInt day.dayOfMonth) ]
+            ]
         ]

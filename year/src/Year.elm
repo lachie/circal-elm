@@ -46,10 +46,13 @@ daysRadiusN daysInYear seedRadius iter =
 
         n ->
             let
+                dir =
+                    iter // abs iter
+
                 dayDiameter =
-                    2 * pi * seedRadius / (daysInYear |> toFloat)
+                    toFloat dir * 2 * pi * seedRadius / (daysInYear |> toFloat)
             in
-            daysRadiusN daysInYear (seedRadius - dayDiameter) (n - 1)
+            daysRadiusN daysInYear (seedRadius - dayDiameter) (n - dir)
 
 
 dayRadiusN : Int -> Float -> Int -> Float
@@ -166,16 +169,22 @@ yearTransitionView facts year =
 yearTransitionView_ : YearViewFacts -> Int -> Int -> Int -> Svg msg
 yearTransitionView_ facts index pre post =
     let
-        ( thisYearAnchor, nextYearAnchor ) =
+        ( thisYearAnchor, nextYearAnchor, dir ) =
             case facts.viewFacts.direction of
                 Clockwise ->
-                    ( AnchorStart, AnchorEnd )
+                    ( AnchorStart, AnchorEnd, 1 )
 
                 AntiClockwise ->
-                    ( AnchorEnd, AnchorStart )
+                    ( AnchorEnd, AnchorStart, -1 )
+
+        halfOneDayAngle =
+            dir * 360 / 2.0 / toFloat facts.daysInRange
+
+        angle =
+            facts.viewFacts.dayAngleIndex index
     in
     g
-        [ transform [ Rotate (facts.viewFacts.dayAngleIndex index) 0 0 ]
+        [ transform [ Rotate (angle - halfOneDayAngle) 0 0 ]
         ]
         [ line
             [ x1 (px facts.innerRadius)
@@ -184,8 +193,8 @@ yearTransitionView_ facts index pre post =
             , y2 (px 0)
             ]
             []
-        , arcLabel (facts.radius + 12) thisYearAnchor (String.fromInt pre)
-        , arcLabel (facts.radius + 12) nextYearAnchor (String.fromInt post)
+        , arcLabel (facts.radius + 24) thisYearAnchor (String.fromInt pre)
+        , arcLabel (facts.radius + 24) nextYearAnchor (String.fromInt post)
 
         -- , text_ [ x (px facts.fullRadius), y (px 0) ] [ text yearString ]
         ]
@@ -265,6 +274,7 @@ view fullRadius year events =
             -- ]
             -- []
             [ circle
+                -- middle circle
                 [ cx (px 0)
                 , cy (px 0)
                 , r (px facts.innerRadius)
@@ -274,12 +284,14 @@ view fullRadius year events =
                 ]
                 []
             , g
+                -- month slices
                 [ class [ "month" ]
                 , stroke <| Color.black
                 , strokeWidth (px 0.5)
                 ]
                 (List.map (Month.view facts) year.months)
             , g
+                -- dividers between years at jan 1, but also the moving horizon
                 [ class [ "month" ]
                 , stroke <| Color.black
                 , strokeWidth (px 0.5)

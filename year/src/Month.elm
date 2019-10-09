@@ -59,5 +59,5 @@ view facts month =
             , y2 (px 0)
             ]
             []
-        , arcLabel (facts.viewFacts.daysRadiusN 0) anchor (monthToString m)
+        , arcLabel (facts.viewFacts.daysRadiusN -1) anchor (monthToString m)
         ]
