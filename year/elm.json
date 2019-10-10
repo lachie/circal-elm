@@ -13,7 +13,8 @@
             "elm/html": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
-            "elm-community/typed-svg": "5.0.1"
+            "elm-community/typed-svg": "5.0.1",
+            "zwilias/elm-rosetree": "1.5.0"
         },
         "indirect": {
             "elm/json": "1.1.3",

@@ -146,60 +146,6 @@ monthFold day months =
                 months
 
 
-yearTransitionView : YearViewFacts -> Year -> List (Svg msg)
-yearTransitionView facts year =
-    let
-        y =
-            year.firstDay.year
-
-        newYearOffset =
-            year.daysInRange - year.jan1offset - 1
-
-        _ =
-            log "jan1offset" year.jan1offset
-    in
-    [ yearTransitionView_ facts 0 y (y + 1)
-    , yearTransitionView_ facts newYearOffset (y + 1) y
-    ]
-
-
-yearTransitionView_ : YearViewFacts -> Int -> Int -> Int -> Svg msg
-yearTransitionView_ facts index pre post =
-    let
-        ( thisYearAnchor, nextYearAnchor, dir ) =
-            case facts.viewFacts.direction of
-                Clockwise ->
-                    ( AnchorStart, AnchorEnd, 1 )
-
-                AntiClockwise ->
-                    ( AnchorEnd, AnchorStart, -1 )
-
-        halfOneDayAngle =
-            dir * 360 / 2.0 / toFloat facts.daysInRange
-
-        angle =
-            facts.viewFacts.dayAngleIndex index
-
-        labelRadius =
-            facts.viewFacts.radiusN -4
-    in
-    g
-        [ transform [ Rotate (angle - halfOneDayAngle) 0 0 ]
-        ]
-        [ line
-            [ x1 (px <| facts.viewFacts.radiusN 2)
-            , y1 (px 0)
-            , x2 (px facts.fullRadius)
-            , y2 (px 0)
-            ]
-            []
-        , arcLabel labelRadius thisYearAnchor (String.fromInt pre)
-        , arcLabel labelRadius nextYearAnchor (String.fromInt post)
-
-        -- , text_ [ x (px facts.fullRadius), y (px 0) ] [ text yearString ]
-        ]
-
-
 view : Float -> Year -> List Evt -> Html msg
 view fullRadius year events =
     let
@@ -236,13 +182,17 @@ view fullRadius year events =
         startJDN =
             Date.toJulianDayNumber year.firstDay.date
 
+        endJDN =
+            startJDN + year.daysInRange
+
         viewFacts =
             { dayAngleIndex = dayAngleAtIndex
             , dayAngleJDN = \x -> dayAngleAtIndex (x - startJDN)
             , dayAngle = dayAngle
             , seedRadius = radius
             , startJDN = startJDN
-            , endJDN = startJDN + year.daysInRange
+            , endJDN = endJDN
+            , jdnInYear = \j -> (j >= startJDN) && (j <= endJDN)
             , direction = dir
             , dayRadiusN = dayRadiusN year.daysInRange radius
             , radiusN = radiusN year.daysInRange radius
@@ -294,16 +244,6 @@ view fullRadius year events =
                 , strokeWidth (px 0.5)
                 ]
                 (List.map (Month.view facts) year.months)
-            , g
-                -- dividers between years at jan 1, but also the moving horizon
-                [ class [ "month" ]
-                , stroke <| Color.black
-                , strokeWidth (px 0.5)
-                ]
-                (yearTransitionView
-                    facts
-                    year
-                )
             , g
                 [ class [ "day" ]
                 , fill FillNone

@@ -51,6 +51,11 @@ events =
         , RangeEvent (LocatedTime 2019 Jun 3 0 (City "SF")) (LocatedTime 2019 Jun 4 0 (City "SF")) [ Pending ]
         , RangeEvent (LocatedTime 2019 Jun 4 2225 (Airport "SFO")) (LocatedTime 2019 Jun 6 605 (Airport "SYD")) [ Flight "QF74" ]
         ]
+    , Events [ Desc "Vietnam Offsite" ]
+        [ RangeEvent (LocatedTime 2019 Oct 20 1115 (Airport "SYD")) (LocatedTime 2019 Oct 20 1610 (Airport "SGN")) [ Flight "VN772" ]
+        , RangeEvent (LocatedTime 2019 Oct 20 0 (City "Saigon")) (LocatedTime 2019 Oct 27 0 (City "Saigon")) [ Accom "Intercontinental" ]
+        , RangeEvent (LocatedTime 2019 Oct 26 2045 (Airport "SGN")) (LocatedTime 2019 Oct 27 915 (Airport "SYD")) [ Flight "VN773" ]
+        ]
     , RepeatEvent EveryYear
         [ Event (EventDate 2006 Nov 9) [ Birthday "Toby" ]
         , Event (EventDate 2009 Jun 25) [ Birthday "Sam" ]
@@ -64,6 +69,30 @@ events =
             []
         ]
     ]
+
+
+
+-- events =
+-- tree RootEvent
+-- [ tree (Events [ Desc "Vietnam Offsite" ])
+-- [ singleton (RangeEvent (LocatedTime 2019 Oct 20 1115 (Airport "SYD")) (LocatedTime 2019 Oct 20 1610 (Airport "SGN")) [ Flight "VN772" ])
+-- , singleton (RangeEvent (LocatedTime 2019 Oct 20 0 (City "Saigon")) (LocatedTime 2019 Oct 27 0 (City "Saigon")) [ Accom "Intercontinental" ])
+-- , singleton (RangeEvent (LocatedTime 2019 Oct 26 2045 (Airport "SGN")) (LocatedTime 2019 Oct 27 915 (Airport "SYD")) [ Flight "VN773" ])
+-- ]
+-- , tree (Events [ Desc "Melbourne/RailsCamp" ])
+-- [ singleton (RangeEvent (LocatedTime 2019 Oct 20 1115 (Airport "SYD")) (LocatedTime 2019 Oct 20 1610 (Airport "SGN")) [ Flight "VN772" ])
+-- ]
+-- , tree (RepeatEvent EveryYear [ Desc "Birthdays" ])
+-- [ singleton (Event (EventDate 2006 Nov 9) [ Birthday "Toby" ])
+-- , singleton (Event (EventDate 2009 Jun 25) [ Birthday "Sam" ])
+-- ]
+-- , tree (Events [ Desc "Routine" ])
+-- [ tree (RepeatEvent (EveryNWeeks 4))
+-- [ singleton RangeEvent (EventDate 2019 Apr 20) (EventDate 2019 May 4) [ Desc "Ilona Kids" ]
+-- , singleton RangeEvent (EventDate 2019 May 4) (EventDate 2019 May 18) [ Desc "Lachie Kids" ]
+-- ]
+-- ]
+-- ]
 
 
 getCalendarDate : Task.Task x Calendar.Date
@@ -123,7 +152,7 @@ view model =
         [ div [] [ Html.text (Date.toString model.today) ]
         , case model.year of
             Just year ->
-                Year.view 450 year model.events
+                Year.view 600 year model.events
 
             Nothing ->
                 Html.text "no year"

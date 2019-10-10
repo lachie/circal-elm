@@ -15,6 +15,7 @@ type YearDirection
 type alias ViewFacts =
     { startJDN : Int
     , endJDN : Int
+    , jdnInYear : Int -> Bool
     , direction : YearDirection
     , seedRadius : Float
     , dayRadiusN : Int -> Float

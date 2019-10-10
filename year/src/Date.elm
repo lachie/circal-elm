@@ -1,4 +1,4 @@
-module Date exposing (firstOfMonth, fromJulianDayNumber, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString)
+module Date exposing (addYears, firstOfMonth, fromJulianDayNumber, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString, ymdToJulianDayNumber)
 
 import Calendar exposing (Date)
 import Time
@@ -62,6 +62,21 @@ fromJulianDayNumber jd =
             b * 100 + d - 4800 + m // 10
     in
     ( year, indexMonth month, day )
+
+
+ymdToJulianDayNumber : ( Int, Time.Month, Int ) -> Int
+ymdToJulianDayNumber ( year, month, day ) =
+    julianDayNumber year (monthOrd month) day
+
+
+addYears : Int -> Int -> Int
+addYears jdn n =
+    let
+        ( year, month, day ) =
+            fromJulianDayNumber jdn
+    in
+    -- TODO work around feb 29?
+    julianDayNumber (year + n) (monthIndex month) day
 
 
 toJulianDayNumber : Date -> Int
