@@ -1,4 +1,4 @@
-module Year exposing (Year, dayRadiusN, daysRadiusN, fromDate, view)
+module Year exposing (Year, dayRadiusN, fromDate, radiusN, view)
 
 import AbsoluteMonth exposing (AbsoluteMonth)
 import Calendar exposing (Date)
@@ -38,8 +38,8 @@ type alias YearViewFacts =
     }
 
 
-daysRadiusN : Int -> Float -> Int -> Float
-daysRadiusN daysInYear seedRadius iter =
+radiusN : Int -> Float -> Int -> Float
+radiusN daysInYear seedRadius iter =
     case iter of
         0 ->
             seedRadius
@@ -49,19 +49,22 @@ daysRadiusN daysInYear seedRadius iter =
                 dir =
                     iter // abs iter
 
+                dirF =
+                    toFloat dir
+
                 dayDiameter =
-                    toFloat dir * 2 * pi * seedRadius / (daysInYear |> toFloat)
+                    dirF * 2 * pi * seedRadius / (daysInYear |> toFloat)
             in
-            daysRadiusN daysInYear (seedRadius - dayDiameter) (n - dir)
+            radiusN daysInYear (seedRadius - dayDiameter) (n - dir)
 
 
 dayRadiusN : Int -> Float -> Int -> Float
 dayRadiusN daysInYear seedRadius iter =
     let
-        daysRadius =
-            daysRadiusN daysInYear seedRadius iter
+        radiusAround =
+            radiusN daysInYear seedRadius iter
     in
-    2 * pi * daysRadius / (daysInYear |> toFloat) / 2.0
+    2 * pi * radiusAround / (daysInYear |> toFloat) / 2.0
 
 
 fromDate : Date -> Year
@@ -78,14 +81,8 @@ fromDate start =
                 }
                 |> Maybe.withDefault Date.nullDate
 
-        _ =
-            log "jan1" jan1
-
         jan1offset =
             Calendar.getDayDiff jan1 start
-
-        _ =
-            log "jan1offset" jan1offset
 
         dates =
             Calendar.getDateRange start end
@@ -155,14 +152,14 @@ yearTransitionView facts year =
         y =
             year.firstDay.year
 
-        offset =
-            year.daysInRange - year.jan1offset
+        newYearOffset =
+            year.daysInRange - year.jan1offset - 1
 
         _ =
             log "jan1offset" year.jan1offset
     in
     [ yearTransitionView_ facts 0 y (y + 1)
-    , yearTransitionView_ facts offset (y + 1) y
+    , yearTransitionView_ facts newYearOffset (y + 1) y
     ]
 
 
@@ -182,19 +179,22 @@ yearTransitionView_ facts index pre post =
 
         angle =
             facts.viewFacts.dayAngleIndex index
+
+        labelRadius =
+            facts.viewFacts.radiusN -4
     in
     g
         [ transform [ Rotate (angle - halfOneDayAngle) 0 0 ]
         ]
         [ line
-            [ x1 (px facts.innerRadius)
+            [ x1 (px <| facts.viewFacts.radiusN 2)
             , y1 (px 0)
             , x2 (px facts.fullRadius)
             , y2 (px 0)
             ]
             []
-        , arcLabel (facts.radius + 24) thisYearAnchor (String.fromInt pre)
-        , arcLabel (facts.radius + 24) nextYearAnchor (String.fromInt post)
+        , arcLabel labelRadius thisYearAnchor (String.fromInt pre)
+        , arcLabel labelRadius nextYearAnchor (String.fromInt post)
 
         -- , text_ [ x (px facts.fullRadius), y (px 0) ] [ text yearString ]
         ]
@@ -224,24 +224,28 @@ view fullRadius year events =
                     -1
 
         dayAngle =
-            \index -> 360 * ((dirMul * index) |> toFloat) / (year.daysInRange |> toFloat)
+            360 / (year.daysInRange |> toFloat)
+
+        dayAngleAtIndex =
+            \index -> dayAngle * ((dirMul * index) |> toFloat)
 
         dateAngle : Calendar.Date -> Float
         dateAngle =
-            dayAngle << Calendar.getDayDiff year.firstDay.date
+            dayAngleAtIndex << Calendar.getDayDiff year.firstDay.date
 
         startJDN =
             Date.toJulianDayNumber year.firstDay.date
 
         viewFacts =
-            { dayAngleIndex = dayAngle
-            , dayAngleJDN = \x -> dayAngle (x - startJDN)
+            { dayAngleIndex = dayAngleAtIndex
+            , dayAngleJDN = \x -> dayAngleAtIndex (x - startJDN)
+            , dayAngle = dayAngle
             , seedRadius = radius
             , startJDN = startJDN
             , endJDN = startJDN + year.daysInRange
             , direction = dir
             , dayRadiusN = dayRadiusN year.daysInRange radius
-            , daysRadiusN = daysRadiusN year.daysInRange radius
+            , radiusN = radiusN year.daysInRange radius
             }
 
         facts =
@@ -273,17 +277,17 @@ view fullRadius year events =
             -- , stroke <| Color.black
             -- ]
             -- []
-            [ circle
-                -- middle circle
-                [ cx (px 0)
-                , cy (px 0)
-                , r (px facts.innerRadius)
-                , fill FillNone
-                , stroke <| Color.black
-                , strokeWidth (px 0.5)
-                ]
-                []
-            , g
+            -- [ circle
+            -- -- middle circle
+            -- [ cx (px 0)
+            -- , cy (px 0)
+            -- , r (px facts.innerRadius)
+            -- , fill FillNone
+            -- , stroke <| Color.black
+            -- , strokeWidth (px 0.5)
+            -- ]
+            -- []
+            [ g
                 -- month slices
                 [ class [ "month" ]
                 , stroke <| Color.black

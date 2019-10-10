@@ -38,26 +38,30 @@ fromIndexAndAbsoluteMonth index absMonth =
 view : YearViewFacts a -> Month -> Svg msg
 view facts month =
     let
-        ( _, m ) =
+        ( year, m ) =
             month.date
 
-        anchor =
+        ( anchor, dir ) =
             case facts.viewFacts.direction of
                 Clockwise ->
-                    AnchorStart
+                    ( AnchorStart, 1.0 )
 
                 AntiClockwise ->
-                    AnchorEnd
+                    ( AnchorEnd, -1.0 )
+
+        halfDayAngle =
+            dir * facts.viewFacts.dayAngle / 2
     in
     g
-        [ transform [ Rotate (facts.viewFacts.dayAngleIndex month.startDayIndex) 0 0 ]
+        [ transform [ Rotate (facts.viewFacts.dayAngleIndex month.startDayIndex - halfDayAngle) 0 0 ]
         ]
         [ line
-            [ x1 (px facts.innerRadius)
+            [ x1 (px 0)
             , y1 (px 0)
             , x2 (px facts.radius)
             , y2 (px 0)
             ]
             []
-        , arcLabel (facts.viewFacts.daysRadiusN -1) anchor (monthToString m)
+        , arcLabel (facts.viewFacts.radiusN -1) anchor (monthToString m)
+        , arcLabel (facts.viewFacts.radiusN -2) anchor (String.fromInt year)
         ]

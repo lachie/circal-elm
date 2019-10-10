@@ -129,7 +129,7 @@ rangeEventView facts details startTime endTime =
             facts.dateAngle endTime
     in
     path
-        [ d (arcPath startAngle endAngle (facts.viewFacts.daysRadiusN 1))
+        [ d (arcPath startAngle endAngle (facts.viewFacts.radiusN 1))
         , strokeWidth (px 5)
         , stroke <| Color.blue
         ]
@@ -144,7 +144,7 @@ singletonEventView facts details date =
         , cy (px 0)
         , fill <| Fill Color.yellow
         , r (px (facts.viewFacts.dayRadiusN 1))
-        , transform [ Rotate (facts.dateAngle date) 0 0, Translate (facts.viewFacts.daysRadiusN 1) 0 ]
+        , transform [ Rotate (facts.dateAngle date) 0 0, Translate (facts.viewFacts.radiusN 1) 0 ]
         ]
         [ title [] [ text "singelton" ]
         ]

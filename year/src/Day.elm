@@ -36,6 +36,30 @@ nullDay =
     }
 
 
+dayColour day =
+    case day of
+        Time.Mon ->
+            Color.lightBlue
+
+        Time.Tue ->
+            Color.green
+
+        Time.Wed ->
+            Color.yellow
+
+        Time.Thu ->
+            Color.orange
+
+        Time.Fri ->
+            Color.lightRed
+
+        Time.Sat ->
+            Color.lightGrey
+
+        Time.Sun ->
+            Color.grey
+
+
 new : Date -> Day
 new date =
     { date = date
@@ -65,7 +89,7 @@ view : ViewFacts -> Day -> Svg msg
 view facts day =
     let
         radius =
-            facts.daysRadiusN 0
+            facts.radiusN 0
 
         dayRadius =
             facts.dayRadiusN 0
@@ -76,29 +100,33 @@ view facts day =
         halfOneDayAngle =
             0.5 * facts.dayAngleIndex 1
 
-        dayFill =
-            if weekend day then
-                Fill Color.gray
-
-            else
-                Fill Color.white
+        colour =
+            dayColour day.dayOfWeek
     in
     g []
+        -- [ g
+        -- [ transform [ Rotate (thisDayAngle - halfOneDayAngle) 0 0, Translate radius 0 ]
+        -- ]
+        -- [ line
+        -- [ x1 (px <| dayRadius * -0.2)
+        -- , y1 (px 0)
+        -- , x2 (px <| dayRadius * 1.4)
+        -- , y2 (px 0)
+        -- ]
+        -- []
+        -- ]
         [ g
-            [ transform [ Rotate (thisDayAngle - halfOneDayAngle) 0 0, Translate radius 0 ]
-            ]
-            [ line
-                [ x1 (px <| dayRadius * -0.2)
-                , y1 (px 0)
-                , x2 (px <| dayRadius * 1.4)
-                , y2 (px 0)
-                ]
-                []
-            ]
-        , g
             [ transform [ Rotate thisDayAngle 0 0, Translate radius 0 ]
             ]
-            [ text_
+            [ circle
+                [ fill <| Fill colour
+                , strokeWidth (px 0)
+                , cx (px <| dayRadius / 2)
+                , cy (px 0)
+                , r (px dayRadius)
+                ]
+                []
+            , text_
                 [ transform [ Rotate 90 0 0 ]
                 , fontSize (px (1.2 * dayRadius))
                 , textAnchor AnchorMiddle

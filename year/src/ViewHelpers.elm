@@ -18,9 +18,10 @@ type alias ViewFacts =
     , direction : YearDirection
     , seedRadius : Float
     , dayRadiusN : Int -> Float
-    , daysRadiusN : Int -> Float
+    , radiusN : Int -> Float
     , dayAngleJDN : Int -> Float
     , dayAngleIndex : Int -> Float
+    , dayAngle : Float
     }
 
 
