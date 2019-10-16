@@ -36,22 +36,48 @@ nullDay =
     }
 
 
-dayColour day =
-    case day of
+ratio lo hi count x =
+    if hi >= lo then
+        lo + (x / count) * (hi - lo)
+
+    else
+        hi + (1 - (x / count)) * (lo - hi)
+
+
+dayColour : Int -> Day -> Color.Color
+dayColour year day =
+    let
+        mi =
+            Date.monthIndex day.month |> toFloat
+
+        hue =
+            mi / 12
+
+        lightness =
+            if day.year == year then
+                ratio 0.5 0.9 5
+
+            else
+                ratio 0.6 1.0 5
+
+        col =
+            \i -> Color.hsl hue 0.8 (lightness i)
+    in
+    case day.dayOfWeek of
         Time.Mon ->
-            Color.lightBlue
+            col 0
 
         Time.Tue ->
-            Color.green
+            col 1
 
         Time.Wed ->
-            Color.yellow
+            col 2
 
         Time.Thu ->
-            Color.orange
+            col 3
 
         Time.Fri ->
-            Color.lightRed
+            col 4
 
         Time.Sat ->
             Color.lightGrey
@@ -101,7 +127,7 @@ view facts day =
             0.5 * facts.dayAngleIndex 1
 
         colour =
-            dayColour day.dayOfWeek
+            dayColour facts.year day
     in
     g []
         -- [ g

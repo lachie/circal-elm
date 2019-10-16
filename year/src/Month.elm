@@ -1,7 +1,7 @@
 module Month exposing (Month, fromIndexAndAbsoluteMonth, view)
 
 import AbsoluteMonth exposing (AbsoluteMonth)
-import Date exposing (monthToString)
+import Date exposing (monthToShortString)
 import Html exposing (Html, button, div)
 import Html.Attributes exposing (classList)
 import Html.Events exposing (onClick)
@@ -62,6 +62,6 @@ view facts month =
             , y2 (px 0)
             ]
             []
-        , arcLabel (facts.viewFacts.radiusN -1) anchor (monthToString m)
+        , arcLabel (facts.viewFacts.radiusN -1) anchor (monthToShortString m)
         , arcLabel (facts.viewFacts.radiusN -2) anchor (String.fromInt year)
         ]

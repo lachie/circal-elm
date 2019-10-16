@@ -25,6 +25,7 @@ type alias Year =
     , months : List Month
     , daysInRange : Int
     , jan1offset : Int
+    , year : Int
     }
 
 
@@ -73,9 +74,12 @@ fromDate start =
         end =
             Calendar.incrementYear (Calendar.decrementDay start)
 
+        currentYear =
+            Calendar.getYear start
+
         jan1 =
             Calendar.fromRawParts
-                { year = Calendar.getYear start
+                { year = currentYear
                 , month = Time.Jan
                 , day = 1
                 }
@@ -125,6 +129,7 @@ fromDate start =
     , months = List.indexedMap indexedMonthToMonth months
     , daysInRange = daysInYear
     , jan1offset = jan1offset
+    , year = currentYear
     }
 
 
@@ -192,6 +197,7 @@ view fullRadius year events =
             , seedRadius = radius
             , startJDN = startJDN
             , endJDN = endJDN
+            , year = year.year
             , jdnInYear = \j -> (j >= startJDN) && (j <= endJDN)
             , direction = dir
             , dayRadiusN = dayRadiusN year.daysInRange radius

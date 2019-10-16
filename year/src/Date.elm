@@ -1,4 +1,4 @@
-module Date exposing (addYears, firstOfMonth, fromJulianDayNumber, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString, ymdToJulianDayNumber)
+module Date exposing (addYears, firstOfMonth, fromJulianDayNumber, indexMonth, isWeekend, julianDayNumber, monthIndex, monthOrd, monthToShortString, monthToString, nullDate, toJulianDayNumber, toString, weekdayToString, ymdToJulianDayNumber)
 
 import Calendar exposing (Date)
 import Time
@@ -61,7 +61,7 @@ fromJulianDayNumber jd =
         year =
             b * 100 + d - 4800 + m // 10
     in
-    ( year, indexMonth month, day )
+    ( year, ordMonth month, day )
 
 
 ymdToJulianDayNumber : ( Int, Time.Month, Int ) -> Int
@@ -76,7 +76,7 @@ addYears jdn n =
             fromJulianDayNumber jdn
     in
     -- TODO work around feb 29?
-    julianDayNumber (year + n) (monthIndex month) day
+    julianDayNumber (year + n) (monthOrd month) day
 
 
 toJulianDayNumber : Date -> Int
@@ -158,6 +158,46 @@ monthToString m =
 
         Time.Dec ->
             "December"
+
+
+monthToShortString : Time.Month -> String
+monthToShortString m =
+    case m of
+        Time.Jan ->
+            "Jan"
+
+        Time.Feb ->
+            "Feb"
+
+        Time.Mar ->
+            "Mar"
+
+        Time.Apr ->
+            "Apr"
+
+        Time.May ->
+            "May"
+
+        Time.Jun ->
+            "Jun"
+
+        Time.Jul ->
+            "Jul"
+
+        Time.Aug ->
+            "Aug"
+
+        Time.Sep ->
+            "Sep"
+
+        Time.Oct ->
+            "Oct"
+
+        Time.Nov ->
+            "Nov"
+
+        Time.Dec ->
+            "Dec"
 
 
 weekdayToString : Time.Weekday -> String
@@ -271,3 +311,7 @@ indexMonth i =
 
         _ ->
             Time.Dec
+
+
+ordMonth i =
+    indexMonth (i - 1)

@@ -61,13 +61,14 @@ events =
         , Event (EventDate 2009 Jun 25) [ Birthday "Sam" ]
         ]
         [ Desc "Birthdays" ]
-    , Events [ Desc "Routine" ]
-        [ RepeatEvent (EveryNWeeks 4)
-            [ RangeEvent (EventDate 2019 Apr 20) (EventDate 2019 May 4) [ Desc "Ilona Kids" ]
-            , RangeEvent (EventDate 2019 May 4) (EventDate 2019 May 18) [ Desc "Lachie Kids" ]
-            ]
-            []
-        ]
+
+    -- , Events [ Desc "Routine" ]
+    -- [ RepeatEvent (EveryNWeeks 4)
+    -- [ RangeEvent (EventDate 2019 Apr 20) (EventDate 2019 May 4) [ Desc "Ilona Kids" ]
+    -- , RangeEvent (EventDate 2019 May 4) (EventDate 2019 May 18) [ Desc "Lachie Kids" ]
+    -- ]
+    -- []
+    -- ]
     ]
 
 

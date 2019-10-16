@@ -25,7 +25,6 @@ type alias SimpleTime =
 
 type RealEvent
     = SimpleEvent SimpleEventData
-    | GroupEvent String
     | NotImpl
     | Filtered
     | Root
@@ -44,6 +43,8 @@ type alias SimpleEventData =
     { start : Int
     , end : Int
     , label : String
+    , height : Int
+    , omit : Bool
     }
 
 
@@ -73,13 +74,32 @@ evtDetailDescs details =
     List.map eventDetailToString details |> String.join ", "
 
 
+subtreeDimensions : List (Tree RealEvent) -> ( Int, Int, Int )
+subtreeDimensions subtrees =
+    ( 0, 0, 0 )
+
+
+subtreeDimensionsHelp : Tree RealEvent -> Int -> ( Int, Int, Int )
+subtreeDimensionsHelp t depth =
+    ( 0, 0, 0 )
+
+
+treeGroup : String -> List (Tree RealEvent) -> Tree RealEvent
+treeGroup desc subtrees =
+    let
+        ( start, end, height ) =
+            subtreeDimensions subtrees
+    in
+    tree (SimpleEvent (SimpleEventData start end desc 1 False)) subtrees
+
+
 reifyGroupedEvent : YearFacts -> List EventDetail -> List Evt -> Tree RealEvent
 reifyGroupedEvent year details events =
     let
         desc =
             evtDetailDescs details
     in
-    tree (GroupEvent desc)
+    treeGroup desc
         (List.map
             (reifyEvent year)
             events
@@ -94,7 +114,7 @@ reifyRangeEvent year details startTime endTime =
     in
     case clamped of
         Just ( start, end ) ->
-            singleton (SimpleEvent (SimpleEventData start end (evtDetailDescs details)))
+            singleton (SimpleEvent (SimpleEventData start end (evtDetailDescs details) 1 False))
 
         Nothing ->
             singleton Filtered
@@ -107,7 +127,7 @@ reifySingleEvent year details date =
             eventDateJDN date
     in
     if year.jdnInYear jdn then
-        singleton (SimpleEvent (SimpleEventData jdn jdn (evtDetailDescs details)))
+        singleton (SimpleEvent (SimpleEventData jdn jdn (evtDetailDescs details) 1 False))
 
     else
         singleton Filtered
@@ -133,7 +153,7 @@ repeatWeeks year n groupDetails seedEvents =
 
 repeatYears : YearFacts -> Int -> List EventDetail -> List Evt -> Tree RealEvent
 repeatYears year n groupDetails seedEvents =
-    tree (GroupEvent ("repeat years " ++ String.fromInt n))
+    treeGroup ("repeat years " ++ String.fromInt n)
         (List.map
             (repeatYears_ year n groupDetails)
             seedEvents
@@ -149,9 +169,6 @@ repeatYears_ year stride groupDetails seedEvent =
         -- eventDateJDN seedEvent
         added =
             Date.addYears year.startJDN 1
-
-        _ =
-            Debug.log "seed" seedEvent
     in
     case seedEvent of
         Events details subEvents ->
@@ -182,9 +199,6 @@ repeatYears_ year stride groupDetails seedEvent =
 adjustYear : YearFacts -> Int -> EventTime -> Maybe EventTime
 adjustYear year stride evtDate =
     let
-        _ =
-            Debug.log "year" year
-
         nextYear =
             year.year2
 
@@ -196,9 +210,6 @@ adjustYear year stride evtDate =
 
         years =
             rangeStride stride originYear nextYear |> List.filter (\x -> x >= year.year1) |> List.reverse
-
-        _ =
-            Debug.log "a" years
 
         delta =
             \y -> y - originYear
@@ -294,6 +305,7 @@ eventDetailToString detail =
 
 type alias EventViewFacts =
     { dateAngle : EventTime -> Float
+    , jdnAngle : Int -> Float
     , viewFacts : ViewFacts
 
     --, eventRadius : Float -> Float
@@ -316,26 +328,11 @@ eventDateJDN d =
 clampJDNRange : YearFacts -> Int -> Int -> Maybe ( Int, Int )
 clampJDNRange year start end =
     let
-        _ =
-            Debug.log "year" year
-
-        _ =
-            Debug.log "start" start
-
-        _ =
-            Debug.log "end" end
-
         startInRange =
             year.jdnInYear start
 
-        _ =
-            Debug.log "startInRange" startInRange
-
         endInRange =
             year.jdnInYear end
-
-        _ =
-            Debug.log "endInRange" endInRange
     in
     if not startInRange && not endInRange then
         Nothing
@@ -361,6 +358,20 @@ dateJDN year month day =
     Date.julianDayNumber year (Date.monthOrd month) day
 
 
+isNothing : Maybe a -> Bool
+isNothing x =
+    case x of
+        Nothing ->
+            True
+
+        _ ->
+            False
+
+
+isJust =
+    isNothing >> not
+
+
 view : ViewFacts -> List Evt -> Svg msg
 view facts events =
     let
@@ -383,8 +394,14 @@ view facts events =
                 }
                 events
 
+        simplifiedEvents =
+            simplifyEvents reifiedEvents
+
+        laidOutEvents =
+            layoutEvents 0 simplifiedEvents
+
         _ =
-            log "reifiedEvents" reifiedEvents
+            log "laidOutEvents" laidOutEvents
 
         dateAngle y m d =
             dateJDN y m d |> facts.dayAngleJDN
@@ -394,14 +411,206 @@ view facts events =
 
         evtFacts =
             { dateAngle = eventDateJDN >> facts.dayAngleJDN
+            , jdnAngle = facts.dayAngleJDN
             , viewFacts = facts
 
             --, eventRadius = facts.dayRadiusN
             }
     in
-    reifiedEvents
-        |> Tree.restructure (labelToSVG evtFacts) (toListItems evtFacts)
-        |> (\root -> g [] [ root ])
+    evtView evtFacts 0 laidOutEvents
+
+
+nullSimpleEvent =
+    { start = 0
+    , end = 0
+    , label = "null"
+    , height = 0
+    , omit = True
+    }
+
+
+realEventToSimple : RealEvent -> Maybe SimpleEventData
+realEventToSimple realEvt =
+    case realEvt of
+        SimpleEvent evt ->
+            Just evt
+
+        Root ->
+            Just { nullSimpleEvent | label = "root", omit = False }
+
+        _ ->
+            Nothing
+
+
+omitEvent : Maybe SimpleEventData -> Bool
+omitEvent maybeEvt =
+    case maybeEvt of
+        Just evt ->
+            .omit evt
+
+        Nothing ->
+            True
+
+
+simplifyEvents : Tree RealEvent -> Tree SimpleEventData
+simplifyEvents t =
+    let
+        label =
+            Tree.label t |> realEventToSimple
+
+        includeSubtree =
+            Tree.label >> realEventToSimple >> omitEvent >> not
+    in
+    case label of
+        Nothing ->
+            Tree.singleton nullSimpleEvent
+
+        Just sEvt ->
+            let
+                children =
+                    Tree.children t |> List.filter includeSubtree |> List.map simplifyEvents
+            in
+            Tree.tree sEvt children
+
+
+layoutEvents : Int -> Tree SimpleEventData -> Tree SimpleEventData
+layoutEvents depth t =
+    let
+        label =
+            Tree.label t
+
+        children =
+            Tree.children t
+    in
+    case children of
+        [] ->
+            t
+
+        _ ->
+            let
+                laidOutChildren =
+                    List.map (layoutEvents (depth + 1)) children
+
+                laidOutLabel =
+                    layoutLabel label laidOutChildren
+            in
+            Tree.tree laidOutLabel laidOutChildren
+
+
+type alias Dim =
+    { width : Int, height : Int }
+
+
+foldLabelDim : Tree SimpleEventData -> Dim -> Dim
+foldLabelDim t dim =
+    let
+        evt =
+            Tree.label t
+    in
+    let
+        w =
+            evt.end - evt.start + 1
+    in
+    { width = max w dim.width, height = max evt.height dim.height }
+
+
+layoutLabel : SimpleEventData -> List (Tree SimpleEventData) -> SimpleEventData
+layoutLabel label children =
+    let
+        dim =
+            List.foldl foldLabelDim { width = 0, height = 0 } children
+    in
+    label
+
+
+
+-- case label of
+-- SimpleEvent evtData -> { evtData
+-- { label
+
+
+evtView : EventViewFacts -> Int -> Tree SimpleEventData -> Svg msg
+evtView facts depth t =
+    let
+        evtData =
+            Tree.label t
+
+        children =
+            Tree.children t
+    in
+    case children of
+        [] ->
+            singletonEvtView facts depth evtData
+
+        _ ->
+            g []
+                (groupEvtView facts depth evtData
+                    :: List.map (evtView facts (depth + 1)) children
+                )
+
+
+groupEvtView : EventViewFacts -> Int -> SimpleEventData -> Svg msg
+groupEvtView facts depth evt =
+    let
+        _ =
+            Debug.log "groupEvtView" evt
+    in
+    g [] []
+
+
+singletonEvtView : EventViewFacts -> Int -> SimpleEventData -> Svg msg
+singletonEvtView facts depth evt =
+    let
+        startAngle =
+            facts.jdnAngle evt.start
+
+        endAngle =
+            facts.jdnAngle evt.end
+
+        _ =
+            Debug.log "startAngle" startAngle
+
+        _ =
+            Debug.log "endAngle" endAngle
+    in
+    if startAngle == endAngle then
+        circle
+            [ cx (px 0)
+            , cy (px 0)
+            , transform [ Rotate startAngle 0 0, Translate (facts.viewFacts.radiusN 1) 0 ]
+            , fill <| Fill Color.blue
+            , r (px (facts.viewFacts.dayRadiusN 1))
+            ]
+            [ title [] [ text evt.label ]
+            ]
+
+    else
+        path
+            [ d (arcPath startAngle endAngle (facts.viewFacts.radiusN depth))
+            , strokeWidth (px 5)
+            , stroke <| Color.blue
+            ]
+            [ title [] [ text evt.label ]
+            ]
+
+
+
+-- layout
+
+
+unboxMaybes : List (Maybe a) -> List a
+unboxMaybes l =
+    case l of
+        head :: rest ->
+            case head of
+                Just x ->
+                    x :: unboxMaybes rest
+
+                _ ->
+                    unboxMaybes rest
+
+        _ ->
+            []
 
 
 eventView : EventViewFacts -> Evt -> Svg msg
@@ -523,41 +732,3 @@ arcPath a1deg a2deg r =
             String.fromFloat
     in
     "M " ++ si x1 ++ "," ++ si y1 ++ " A" ++ si r ++ "," ++ si r ++ " 0 0,0 " ++ si x2 ++ "," ++ si y2
-
-
-
--- title [] [ text "accom" ]
--- ]
--- circle
--- [ cx (px 0)
--- , cy (px 0)
--- , r (px (facts.eventRadius facts.radius))
--- , transform [ Rotate (facts.tripTimeToAngle time) 0 0, Translate (facts.radius * 1.01) 0 ]
--- ]
--- []
--- flightView : EventViewFacts -> Desc -> TripTime -> TripTime -> String -> Svg msg
--- flightView facts desc startTime endTime transport =
--- let
--- flightDesc =
--- startTime.loc ++ "->" ++ endTime.loc
--- in
--- g []
--- [ circle
--- [ cx (px 0)
--- , cy (px 0)
--- , fill <| Fill Color.green
--- , r (px (facts.eventRadius facts.radius))
--- , transform [ Rotate (facts.tripTimeToAngle startTime) 0 0, Translate (facts.radius * 1) 0 ]
--- ]
--- [ title [] [ text ("flight start " ++ desc ++ " " ++ flightDesc) ]
--- ]
--- , circle
--- [ cx (px 0)
--- , cy (px 0)
--- , fill <| Fill Color.red
--- , r (px (facts.eventRadius facts.radius))
--- , transform [ Rotate (facts.tripTimeToAngle endTime) 0 0, Translate (facts.radius * 0.98) 0 ]
--- ]
--- [ title [] [ text ("flight end " ++ desc ++ " " ++ flightDesc) ]
--- ]
--- ]
