@@ -23,13 +23,6 @@ type alias SimpleTime =
     Int
 
 
-type RealEvent
-    = SimpleEvent SimpleEventData
-    | NotImpl
-    | Filtered
-    | Root
-
-
 type alias YearFacts =
     { jdnInYear : Int -> Bool
     , startJDN : Int
@@ -39,21 +32,56 @@ type alias YearFacts =
     }
 
 
-type alias SimpleEventData =
-    { start : Int
-    , end : Int
+type alias EventLabel =
+    { startJDN : Int
+    , endJDN : Int
     , label : String
+    , depth : Int
+    , width : Int
     , height : Int
     , omit : Bool
     }
 
 
-reifyEvents : YearFacts -> List Evt -> Tree RealEvent
+newEventLabel : Int -> Int -> String -> EventLabel
+newEventLabel startJDN endJDN label =
+    { startJDN = startJDN
+    , endJDN = endJDN
+    , label = label
+    , depth = 0
+    , width = endJDN - startJDN
+    , height = 1
+    , omit = False
+    }
+
+
+nullEventLabel : EventLabel
+nullEventLabel =
+    { startJDN = 0
+    , endJDN = 0
+    , label = "null"
+    , depth = 0
+    , width = 0
+    , height = 0
+    , omit = False
+    }
+
+
+omittedEvent : EventLabel
+omittedEvent =
+    { nullEventLabel | omit = True }
+
+
+reifyEvents : YearFacts -> List Evt -> Tree EventLabel
 reifyEvents year events =
-    tree Root (List.map (reifyEvent year) events)
+    tree { nullEventLabel | label = "root" } (List.map (reifyEvent year) events)
 
 
-reifyEvent : YearFacts -> Evt -> Tree RealEvent
+
+--|> List.filter (Tree.label >> .omit >> not)
+
+
+reifyEvent : YearFacts -> Evt -> Tree EventLabel
 reifyEvent year evt =
     case evt of
         Events details subEvents ->
@@ -74,39 +102,20 @@ evtDetailDescs details =
     List.map eventDetailToString details |> String.join ", "
 
 
-subtreeDimensions : List (Tree RealEvent) -> ( Int, Int, Int )
-subtreeDimensions subtrees =
-    ( 0, 0, 0 )
-
-
-subtreeDimensionsHelp : Tree RealEvent -> Int -> ( Int, Int, Int )
-subtreeDimensionsHelp t depth =
-    ( 0, 0, 0 )
-
-
-treeGroup : String -> List (Tree RealEvent) -> Tree RealEvent
-treeGroup desc subtrees =
-    let
-        ( start, end, height ) =
-            subtreeDimensions subtrees
-    in
-    tree (SimpleEvent (SimpleEventData start end desc 1 False)) subtrees
-
-
-reifyGroupedEvent : YearFacts -> List EventDetail -> List Evt -> Tree RealEvent
+reifyGroupedEvent : YearFacts -> List EventDetail -> List Evt -> Tree EventLabel
 reifyGroupedEvent year details events =
     let
         desc =
             evtDetailDescs details
     in
-    treeGroup desc
+    Tree.tree { nullEventLabel | label = desc }
         (List.map
             (reifyEvent year)
             events
         )
 
 
-reifyRangeEvent : YearFacts -> List EventDetail -> EventTime -> EventTime -> Tree RealEvent
+reifyRangeEvent : YearFacts -> List EventDetail -> EventTime -> EventTime -> Tree EventLabel
 reifyRangeEvent year details startTime endTime =
     let
         clamped =
@@ -114,26 +123,26 @@ reifyRangeEvent year details startTime endTime =
     in
     case clamped of
         Just ( start, end ) ->
-            singleton (SimpleEvent (SimpleEventData start end (evtDetailDescs details) 1 False))
+            singleton (newEventLabel start end (evtDetailDescs details))
 
         Nothing ->
-            singleton Filtered
+            singleton omittedEvent
 
 
-reifySingleEvent : YearFacts -> List EventDetail -> EventTime -> Tree RealEvent
+reifySingleEvent : YearFacts -> List EventDetail -> EventTime -> Tree EventLabel
 reifySingleEvent year details date =
     let
         jdn =
             eventDateJDN date
     in
     if year.jdnInYear jdn then
-        singleton (SimpleEvent (SimpleEventData jdn jdn (evtDetailDescs details) 1 False))
+        singleton (newEventLabel jdn jdn (evtDetailDescs details))
 
     else
-        singleton Filtered
+        singleton omittedEvent
 
 
-reifyRepeatedEvent : YearFacts -> Repetition -> List EventDetail -> List Evt -> Tree RealEvent
+reifyRepeatedEvent : YearFacts -> Repetition -> List EventDetail -> List Evt -> Tree EventLabel
 reifyRepeatedEvent year repetition groupDetails seedEvents =
     case repetition of
         EveryNWeeks n ->
@@ -146,21 +155,21 @@ reifyRepeatedEvent year repetition groupDetails seedEvents =
             reifyRepeatedEvent year (EveryNYears 1) groupDetails seedEvents
 
 
-repeatWeeks : YearFacts -> Int -> List EventDetail -> List Evt -> Tree RealEvent
+repeatWeeks : YearFacts -> Int -> List EventDetail -> List Evt -> Tree EventLabel
 repeatWeeks year n groupDetails seedEvents =
-    singleton Filtered
+    singleton omittedEvent
 
 
-repeatYears : YearFacts -> Int -> List EventDetail -> List Evt -> Tree RealEvent
+repeatYears : YearFacts -> Int -> List EventDetail -> List Evt -> Tree EventLabel
 repeatYears year n groupDetails seedEvents =
-    treeGroup ("repeat years " ++ String.fromInt n)
+    Tree.tree { nullEventLabel | label = "repeat years " ++ String.fromInt n }
         (List.map
             (repeatYears_ year n groupDetails)
             seedEvents
         )
 
 
-repeatYears_ : YearFacts -> Int -> List EventDetail -> Evt -> Tree RealEvent
+repeatYears_ : YearFacts -> Int -> List EventDetail -> Evt -> Tree EventLabel
 repeatYears_ year stride groupDetails seedEvent =
     let
         nextYear =
@@ -172,7 +181,7 @@ repeatYears_ year stride groupDetails seedEvent =
     in
     case seedEvent of
         Events details subEvents ->
-            singleton Filtered
+            singleton omittedEvent
 
         RangeEvent startTime endTime details ->
             -- TODO adjust start/end
@@ -189,11 +198,11 @@ repeatYears_ year stride groupDetails seedEvent =
                     reifySingleEvent year (List.concat [ details, groupDetails ]) newDate
 
                 Nothing ->
-                    singleton Filtered
+                    singleton omittedEvent
 
         -- prune nested repeated
         RepeatEvent repetition seedEvents details ->
-            singleton Filtered
+            singleton omittedEvent
 
 
 adjustYear : YearFacts -> Int -> EventTime -> Maybe EventTime
@@ -394,11 +403,8 @@ view facts events =
                 }
                 events
 
-        simplifiedEvents =
-            simplifyEvents reifiedEvents
-
         laidOutEvents =
-            layoutEvents 0 simplifiedEvents
+            layoutEvents 0 reifiedEvents
 
         _ =
             log "laidOutEvents" laidOutEvents
@@ -420,60 +426,12 @@ view facts events =
     evtView evtFacts 0 laidOutEvents
 
 
-nullSimpleEvent =
-    { start = 0
-    , end = 0
-    , label = "null"
-    , height = 0
-    , omit = True
-    }
+setDim : EventLabel -> Int -> EventLabel
+setDim label depth =
+    { label | depth = depth }
 
 
-realEventToSimple : RealEvent -> Maybe SimpleEventData
-realEventToSimple realEvt =
-    case realEvt of
-        SimpleEvent evt ->
-            Just evt
-
-        Root ->
-            Just { nullSimpleEvent | label = "root", omit = False }
-
-        _ ->
-            Nothing
-
-
-omitEvent : Maybe SimpleEventData -> Bool
-omitEvent maybeEvt =
-    case maybeEvt of
-        Just evt ->
-            .omit evt
-
-        Nothing ->
-            True
-
-
-simplifyEvents : Tree RealEvent -> Tree SimpleEventData
-simplifyEvents t =
-    let
-        label =
-            Tree.label t |> realEventToSimple
-
-        includeSubtree =
-            Tree.label >> realEventToSimple >> omitEvent >> not
-    in
-    case label of
-        Nothing ->
-            Tree.singleton nullSimpleEvent
-
-        Just sEvt ->
-            let
-                children =
-                    Tree.children t |> List.filter includeSubtree |> List.map simplifyEvents
-            in
-            Tree.tree sEvt children
-
-
-layoutEvents : Int -> Tree SimpleEventData -> Tree SimpleEventData
+layoutEvents : Int -> Tree EventLabel -> Tree EventLabel
 layoutEvents depth t =
     let
         label =
@@ -484,7 +442,7 @@ layoutEvents depth t =
     in
     case children of
         [] ->
-            t
+            Tree.singleton (setDim label depth)
 
         _ ->
             let
@@ -497,11 +455,22 @@ layoutEvents depth t =
             Tree.tree laidOutLabel laidOutChildren
 
 
+type alias LayoutAcc =
+    { depth : Int
+    , done : List EventLabel
+    }
+
+
+layoutLabel : EventLabel -> List (Tree EventLabel) -> EventLabel
+layoutLabel label children =
+    nullEventLabel
+
+
 type alias Dim =
     { width : Int, height : Int }
 
 
-foldLabelDim : Tree SimpleEventData -> Dim -> Dim
+foldLabelDim : Tree EventLabel -> Dim -> Dim
 foldLabelDim t dim =
     let
         evt =
@@ -509,13 +478,13 @@ foldLabelDim t dim =
     in
     let
         w =
-            evt.end - evt.start + 1
+            evt.endJDN - evt.startJDN + 1
     in
     { width = max w dim.width, height = max evt.height dim.height }
 
 
-layoutLabel : SimpleEventData -> List (Tree SimpleEventData) -> SimpleEventData
-layoutLabel label children =
+layoutLabel_ : EventLabel -> List (Tree EventLabel) -> EventLabel
+layoutLabel_ label children =
     let
         dim =
             List.foldl foldLabelDim { width = 0, height = 0 } children
@@ -529,7 +498,7 @@ layoutLabel label children =
 -- { label
 
 
-evtView : EventViewFacts -> Int -> Tree SimpleEventData -> Svg msg
+evtView : EventViewFacts -> Int -> Tree EventLabel -> Svg msg
 evtView facts depth t =
     let
         evtData =
@@ -549,7 +518,7 @@ evtView facts depth t =
                 )
 
 
-groupEvtView : EventViewFacts -> Int -> SimpleEventData -> Svg msg
+groupEvtView : EventViewFacts -> Int -> EventLabel -> Svg msg
 groupEvtView facts depth evt =
     let
         _ =
@@ -558,14 +527,14 @@ groupEvtView facts depth evt =
     g [] []
 
 
-singletonEvtView : EventViewFacts -> Int -> SimpleEventData -> Svg msg
+singletonEvtView : EventViewFacts -> Int -> EventLabel -> Svg msg
 singletonEvtView facts depth evt =
     let
         startAngle =
-            facts.jdnAngle evt.start
+            facts.jdnAngle evt.startJDN
 
         endAngle =
-            facts.jdnAngle evt.end
+            facts.jdnAngle evt.endJDN
 
         _ =
             Debug.log "startAngle" startAngle
@@ -732,3 +701,34 @@ arcPath a1deg a2deg r =
             String.fromFloat
     in
     "M " ++ si x1 ++ "," ++ si y1 ++ " A" ++ si r ++ "," ++ si r ++ " 0 0,0 " ++ si x2 ++ "," ++ si y2
+
+
+collapseTree : Tree EventLabel -> Maybe (Tree EventLabel)
+collapseTree t =
+    let
+        label =
+            Tree.label t
+    in
+    if label.omit then
+        Nothing
+
+    else
+        let
+            originalChildren =
+                Tree.children t
+        in
+        case originalChildren of
+            [] ->
+                Just (Tree.singleton label)
+
+            _ ->
+                let
+                    filteredChildren =
+                        originalChildren |> List.filter (Tree.label >> .omit >> not)
+                in
+                case filteredChildren of
+                    [] ->
+                        Nothing
+
+                    _ ->
+                        Just (Tree.tree label filteredChildren)
