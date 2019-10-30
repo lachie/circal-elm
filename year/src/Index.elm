@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Index exposing (main)
 
 import Browser
 import Calendar
