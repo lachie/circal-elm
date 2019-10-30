@@ -56,6 +56,12 @@ events =
         , RangeEvent (LocatedTime 2019 Oct 20 0 (City "Saigon")) (LocatedTime 2019 Oct 27 0 (City "Saigon")) [ Accom "Intercontinental" ]
         , RangeEvent (LocatedTime 2019 Oct 26 2045 (Airport "SGN")) (LocatedTime 2019 Oct 27 915 (Airport "SYD")) [ Flight "VN773" ]
         ]
+    , Events [ Desc "Melbourne / Railscamp" ]
+        [ RangeEvent (LocatedTime 2019 Nov 9 1700 (Airport "SYD")) (LocatedTime 2019 Nov 9 1835 (Airport "MEL")) [ Flight "QF453" ]
+        , RangeEvent (LocatedTime 2019 Nov 9 0 (City "Melbourne")) (LocatedTime 2019 Nov 15 0 (City "Melbourne")) [ Accom "Airbnb" ]
+        , RangeEvent (LocatedTime 2019 Nov 15 0 (City "Kyneton")) (LocatedTime 2019 Nov 18 0 (City "Kyneton")) [ Accom "RailsCamp" ]
+        , RangeEvent (LocatedTime 2019 Nov 18 1830 (Airport "MEL")) (LocatedTime 2019 Nov 18 1955 (Airport "SYD")) [ Flight "QF460" ]
+        ]
     , RepeatEvent EveryYear
         [ Event (EventDate 2006 Nov 9) [ Birthday "Toby" ]
         , Event (EventDate 2009 Jun 25) [ Birthday "Sam" ]
