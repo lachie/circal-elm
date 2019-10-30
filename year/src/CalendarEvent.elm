@@ -7,6 +7,7 @@ import Day exposing (Day)
 import Debug exposing (log)
 import Time exposing (Month(..))
 import Tree exposing (Tree, singleton, tree)
+import Tree.Zipper as Z
 import TypedSvg exposing (circle, g, line, path, svg, text_, title)
 import TypedSvg.Attributes exposing (class, cx, cy, d, fill, fontSize, height, r, stroke, strokeWidth, textAnchor, transform, viewBox, width, x, x1, x2, y, y1, y2)
 import TypedSvg.Core exposing (Svg, attribute, text)
@@ -40,6 +41,7 @@ type alias EventLabel =
     , width : Int
     , height : Int
     , omit : Bool
+    , group : Bool
     }
 
 
@@ -52,6 +54,7 @@ newEventLabel startJDN endJDN label =
     , width = endJDN - startJDN
     , height = 1
     , omit = False
+    , group = False
     }
 
 
@@ -64,6 +67,7 @@ nullEventLabel =
     , width = 0
     , height = 0
     , omit = False
+    , group = False
     }
 
 
@@ -427,8 +431,13 @@ view facts events =
 
 
 setDim : EventLabel -> Int -> EventLabel
-setDim label depth =
-    { label | depth = depth }
+setDim label height =
+    { label | height = height, width = label.endJDN - label.startJDN + 1 }
+
+
+treeHeight : Tree EventLabel -> Int
+treeHeight t =
+    1
 
 
 layoutEvents : Int -> Tree EventLabel -> Tree EventLabel
@@ -439,31 +448,73 @@ layoutEvents depth t =
 
         children =
             Tree.children t
+
+        laidOutChildren =
+            List.map (layoutEvents (depth + 1)) children
     in
-    case children of
-        [] ->
-            Tree.singleton (setDim label depth)
-
-        _ ->
-            let
-                laidOutChildren =
-                    List.map (layoutEvents (depth + 1)) children
-
-                laidOutLabel =
-                    layoutLabel label laidOutChildren
-            in
-            Tree.tree laidOutLabel laidOutChildren
+    layoutTree label depth laidOutChildren
 
 
 type alias LayoutAcc =
     { depth : Int
-    , done : List EventLabel
+    , z : Z.Zipper EventLabel
+    , todo : List (Tree EventLabel)
     }
 
 
-layoutLabel : EventLabel -> List (Tree EventLabel) -> EventLabel
-layoutLabel label children =
-    nullEventLabel
+layoutTree : EventLabel -> Int -> List (Tree EventLabel) -> Tree EventLabel
+layoutTree label depth laidOutChildren =
+    case laidOutChildren of
+        [] ->
+            Tree.singleton label
+
+        [ top ] ->
+            top
+
+        top :: rest ->
+            let
+                z =
+                    Z.fromTree top
+
+                acc =
+                    { depth = depth, todo = rest, z = z }
+            in
+            layoutLabelHelp acc
+
+
+layoutLabelHelp : LayoutAcc -> Tree EventLabel
+layoutLabelHelp acc =
+    let
+        _ =
+            Debug.log "layoutLabelHelp" acc
+    in
+    case acc.todo of
+        [] ->
+            Z.toTree acc.z
+
+        this :: rest ->
+            let
+                nextZ =
+                    layoutInsertTree acc.z this
+            in
+            layoutLabelHelp { acc | z = nextZ, todo = rest }
+
+
+layoutInsertTree : Z.Zipper EventLabel -> Tree EventLabel -> Z.Zipper EventLabel
+layoutInsertTree z label =
+    Z.lastDescendant z
+
+
+
+-- let
+-- height =
+-- List.map (Tree.label >> .height) children |> List.maximum |> Maybe.withDefault 1
+-- width =
+-- label.endJDN - label.startJDN + 1
+-- isGroup =
+-- List.isEmpty children
+-- in
+-- { label | depth = depth, height = height, width = width, group = isGroup }
 
 
 type alias Dim =
@@ -506,6 +557,12 @@ evtView facts depth t =
 
         children =
             Tree.children t
+
+        _ =
+            Debug.log "evtData" evtData
+
+        _ =
+            Debug.log "children" children
     in
     case children of
         [] ->
